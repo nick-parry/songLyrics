@@ -1,0 +1,109 @@
+#!/bin/bash
+################################################################################
+# This may be my ugliest, but most useful creation. - NP 08-08-14 
+# The purpose of this is to get songlyrics. There are several different methods
+# available.
+#
+# Examples:
+#   Use dbus interface to see what song is playing right now on spotify:
+#       songLyrics spotify
+#   Look up lyrics on a song by artist and title:
+#       songLyrics "artist" "title"
+#   Look up a song by its url:
+#       songLyrics <songlyrics.com url> 
+#   Look up lyrics on a song by artist and title, but show the top 10 google
+#   results:
+#       songLyrics [-g|--google[ "artist" "title"
+################################################################################
+# Setup some variables
+USER_AGENT="Mozilla 5-ish";
+CURL="curl -s -H 'User-Agent: $USER_AGENT'";
+
+# this is needed. This is also in my bashrc
+function google { 
+    if [[ -n "$1" && -n "$2" ]];then
+        Q="$2";
+        GOOG_URL='https://www.google.com/search?tbs=li:1&q=';
+        AGENT="Mozilla/4.0";
+        stream=$(curl -A "$AGENT" -skLm 10 "${GOOG_URL}${Q//\ /+}" | grep -oP '\/url\?q=.+?&amp' | sed 's|/url?q=||;s|&amp||');
+        if [[ "$1" == '-i' ]];then
+            firefox $(echo -e "${stream//\%/\x}" | head -1);
+        else
+            echo -e "${stream//\%/\x}";
+        fi
+
+    elif [[ -n "$1" ]];then
+            Q="$1";
+            GOOG_URL='https://www.google.com/search?tbs=li:1&q=';
+            AGENT="Mozilla/4.0";
+            stream=$(curl -A "$AGENT" -skLm 10 "${GOOG_URL}${Q//\ /+}" | grep -oP '\/url\?q=.+?&amp' | sed 's|/url?q=||;s|&amp||');
+            echo -e "${stream//\%/\x}";
+    fi
+
+}
+
+# Get the lyrics of a song by googling it, and parsing result pages
+function do_it() {
+    ALL=$(google "$1 $2 lyrics site:songlyrics.com");
+    URL="$(echo $ALL | tr ' ' '\n' | grep "songlyrics.com" -m 1)";
+    if [[ -z "$URL" ]];then
+        echo "There was no songlyrics.com results. Here are the others:";
+        echo -e "$ALL";
+        exit
+    fi
+    # Print the artist and title we are going to look up
+    echo -e "($URL) $1 - $2: ";
+    # Verbose mode for testing stuffs.
+    if [[ "$3" == "-v" ]];then
+        RAW="$($CURL $URL | awk '/<p id=\"songLyricsDiv\"/, /<\/p>/' | sed 's/<.*>//g' | sed 's/’//g' |  sed 's/“//g' | sed -r 's/”//g')";
+        echo -e "$RAW" | while read -r i;do echo $i;done
+        echo -e $RAW | recode html..ascii | while read -r i;do echo $i;done;
+        echo $RAW | recode html..;
+
+    else
+        # Highlight dirty languages.
+        $CURL $URL | awk '/<p id=\"songLyricsDiv\"/, /<\/p>/' | sed 's/<.*>//g' | sed 's/’//g' | sed 's/‘//g' |  sed 's/”/"/g' | sed 's/“/"/g' | sed 's/…/.../g' | sed 's/[fF][uU][cC][kK]/[32mF***[39m/g' | sed "s/&#039;/'/g" | sed 's/&rsquo;//g'
+        #| recode html..ascii ;
+
+    fi
+    exit
+
+}
+
+
+# If given a songlyrics url 
+if [[ "$(echo $1 | grep 'http://.*songlyrics.com' -i)" ]];then
+    URL="$1";
+    echo -e "($URL) $ARTIST - $TITLE: ";
+    $CURL $URL | awk '/<p id=\"songLyricsDiv\"/, /<\/p>/' | sed 's/<.*>//g' | recode html..ascii;
+    exit; 
+
+# Lets just show the urls
+elif [[ "$1" == '--google' || "$1" == '-g' ]];then
+    echo "Returning the goolge search for lyrics"
+    google "$1 $2 lyrics"
+    exit 
+
+# look up the username from the spotify dbus api
+elif [[ "$1" == 'spotify' ]]; then
+    ARTIST="$(dbus-send --print-reply --session --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' string:'Metadata' | grep -A 3 artist | grep string | grep -v xesam | sed 's/^\s*//' | cut -d ' ' -f 2- | tr '(' ' ' | tr ')' ' ' | tr '"' ' ' )";
+
+    TITLE="$(dbus-send --print-reply --session --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' string:'Metadata' | grep -A 3 title | grep string | grep -v xesam | sed 's/^\s*//' | sed 's/^variant\s*//' | cut -d ' ' -f 2- | tr '(' ' ' | tr ')' ' ' | tr '"' ' ' )";
+
+    #URL="$(echo $ALL | tr ' ' '\n' | grep "songlyrics.com" -m 1)";
+    
+    echo "Looking up title by spotify artist and title...";
+    echo "Artist: $ARTIST";
+    echo "TITLE: $TITLE";
+
+    do_it "$ARTIST" "$TITLE";
+    exit 0;
+   # Usage
+elif [[ -z "$1" || -z "$2" ]];then
+    echo "You are doing it wrong. Do it like this:";
+    echo "songLyrics <artist> <title>     - to do a search";
+    echo "songLyrics -g <artist> <title>  - to show the top 10 google search urls";
+else
+    do_it "$1" "$2";
+    exit 0;
+fi
