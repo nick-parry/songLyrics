@@ -6,8 +6,7 @@
 #
 # Examples:
 #   Use dbus interface to see what song is playing right now on spotify:
-#       songLyrics spotify
-#   Look up lyrics on a song by artist and title:
+#       songLyrics spotify #   Look up lyrics on a song by artist and title:
 #       songLyrics "artist" "title"
 #   Look up a song by its url:
 #       songLyrics <songlyrics.com url> 
@@ -58,8 +57,7 @@ function do_it_songLyrics() {
     fi
 
     if [[ -z "$URL" ]];then
-        echo "There was no songlyrics.com results. Trying azlyrics.com..."
-        do_it_azlyrics "$1" "$2"
+        echo "There was no songlyrics.com results. Giving up now :(";
         exit 0;
     fi
     # Print the artist and title we are going to look up
@@ -68,11 +66,10 @@ function do_it_songLyrics() {
     RESULT="$($CURL $URL | awk '/<p id=\"songLyricsDiv\"/, /<\/p>/' | sed 's/<.*>//g' | sed 's/’//g' | sed 's/‘//g' |  sed 's/”/"/g' | sed 's/“/"/g' | sed 's/…/.../g' | sed 's/[fF][uU][cC][kK]/[32mF***[39m/g' | sed "s/&#039;/'/g" | sed 's/&rsquo;//g')";
     # If we didn't get anything, lets try the next one
     if [[ -z "$RESULT" ]];then
-        echo "That URL sucked. Trying azlyrics now..."
-        do_it_azlyrics "$1" "$2"
-        exit
+        echo "That URL sucked. Giving up now :(";
+        exit 0;
 
-    # We found something, print it
+    # We found something
     else
         echo "$RESULT"
     fi
@@ -93,8 +90,9 @@ function do_it_azlyrics() {
     fi
 
     if [[ -z "$URL" ]];then
-        echo "There was no azlyrics.com results. Here are the others:";
-        echo -e "$ALL";
+        echo "There was no azlyrics.com results. Lets try songlyrics.com...";
+        #do_it_azlyrics "$1" "$2"
+        do_it_songLyrics "$1" "$2"
         exit
     fi
 
@@ -104,7 +102,8 @@ function do_it_azlyrics() {
     RESULT="$($CURL $URL |  awk '/<!-- start of lyrics -->/, /<!-- end of lyrics -->/' | sed 's/<.*>//g' | sed 's/^$//' | sed 's/[fF][uU][cC][kK]/[32mF***[39m/g';)";
 ### NEW
     if [[ -z "$RESULT" ]];then
-        echo "That URL sucked. Giving up now. :("
+        echo "That URL sucked. Lets try songlyrics.com...";
+        do_it_songLyrics "$1" "$2"
         exit 0;
 
     # We found something, print it
@@ -129,8 +128,50 @@ function lookupSpotifyInfo() {
     fi
 
 }
+
 ################################################################################
-# Parse the args
+# Look up the song info for the currently playing song in Rhythmbox
+# Sets the global ARTIST and TITLE varibles
+################################################################################
+function lookupRhythmboxInfo() {
+    # This is a nasty one-liner that returns data like this:
+    # string "artist"
+    # variant             string "City and Colour"
+    # --
+    # string "title"
+    # variant             string "Like Knives"
+
+    ALL="$(dbus-send --print-reply --dest=org.gnome.Rhythmbox /org/gnome/Rhythmbox/Shell org.gnome.Rhythmbox.Shell.getSongProperties string:$(dbus-send --print-reply --dest=org.gnome.Rhythmbox /org/gnome/Rhythmbox/Player org.gnome.Rhythmbox.Player.getPlayingUri | grep string | sed 's/^\s*//g' | cut -d ' ' -f 2 | sed 's/"//g') | sed 's/^\s*//' | grep 'string "artist"\|string "title"' -A 1)";
+
+    # Get the Artist out of the dbus call
+    ARTIST="$(echo  "$ALL" | grep artist -A 1  | grep variant | cut -d ' ' -f 15- | sed 's/"//g')";
+    # Get the Title out of the dbus call
+    TITLE="$(echo "$ALL" | grep title -A 1  | grep variant | cut -d ' ' -f 15- | sed 's/"//g')";
+    
+}
+
+################################################################################
+# Usage info
+################################################################################
+function usage() {
+    echo "$(basename $0) - Find out the songlyrics for a currently playing song."
+    echo "This script is capable of finding out the Artist and Title of the currently"
+    echo "playing song. If, you are using Rhythmbox or Spotify. See usage message below."
+    echo
+    echo "Do it like this:"
+    echo "$(basename $0) <artist> <title>       - To display lyrics for a song"
+    echo "$(basename $0) spotify                - To look up info for the currently playing song in Spotify"
+    echo "$(basename $0) rhythmbox|rbox         - To look up info for the currently playing song in Rhythmbox"
+    echo "$(basename $0) <songlyrics.com url>   - To display the lyrics from a given songlyrics.com url"
+    echo "$(basename $0) <azlyrics.com url>     - To display the lyrics from a given songlyrics.com url"
+    # Print the args if any were passed
+    if [[ -n "$1" ]];then
+        echo -e "\nERROR:\n$1"
+    fi
+    exit 0;
+}
+################################################################################
+# Main (Arg parsing crap)
 ################################################################################
 ########################################
 # If given a songlyrics url 
@@ -147,21 +188,16 @@ elif [[ "$(echo $1 | grep 'http://.*azlyrics.com' -i)" ]];then
     exit; 
 
 ########################################
-# Lets just show the urls
+# look up the username from the Rhythmbox dbus api
 ########################################
-elif [[ "$1" == '--google' || "$1" == '-g' ]];then
-    echo "Returning the goolge search for lyrics"
-    google "$1 $2 lyrics"
-    exit 
+elif [[ "$1" == 'rhythmbox' || "$1" == 'rbox' ]]; then
+    lookupRhythmboxInfo
+    echo "Looking up title by Rhythmbox artist and title...";
+    echo "Artist: $ARTIST";
+    echo "TITLE: $TITLE";
 
-########################################
-# Lets try the azlyrics site first(and only)
-########################################
-elif [[ "$1" == '-az' ]];then 
-    echo "Using only azlyrics.com..."
-    do_it_azlyrics "$2" "$3";
-    # Exit here since we are done
-    exit 0
+    do_it_azlyrics "$ARTIST" "$TITLE";
+    exit 0;
 
 ########################################
 # look up the username from the spotify dbus api
@@ -169,23 +205,19 @@ elif [[ "$1" == '-az' ]];then
 elif [[ "$1" == 'spotify' ]]; then
     # Sets the global ARTIST and TITLE vars
     lookupSpotifyInfo
-    echo "Looking up title by spotify artist and title...";
+    echo "Looking up title by Spotify artist and title...";
     echo "Artist: $ARTIST";
     echo "TITLE: $TITLE";
 
-    do_it_songLyrics "$ARTIST" "$TITLE";
+    do_it_azlyrics "$ARTIST" "$TITLE";
     exit 0;
+
 ########################################
-# Usage
+# Artist Title args to look up
 ########################################
-elif [[ -z "$1" || -z "$2" ]];then
-    echo "You are doing it wrong. Do it like this:";
-    echo "songLyrics <artist> <title>     - to do a search";
-    echo "songLyrics -g <artist> <title>  - to show the top 10 google search urls";
-########################################
-# We just got some good old args that need to be processed.
-########################################
-else
+elif [[ -n "$1" && -n "$2" ]];then
     do_it_songLyrics "$1" "$2";
     exit 0;
+else
+    usage 
 fi
