@@ -99,7 +99,8 @@ function do_it_azlyrics() {
     # Print the artist and title we are going to look up
     echo -e "($URL) $1 - $2: ";
     # Run the curl and store the lyrics into a var
-    RESULT="$($CURL $URL |  awk '/<!-- start of lyrics -->/, /<!-- end of lyrics -->/' | sed 's/<.*>//g' | sed 's/^$//' | sed 's/[fF][uU][cC][kK]/[32mF***[39m/g';)";
+    #RESULT="$($CURL $URL |  awk '/<!-- start of lyrics -->/, /<!-- end of lyrics -->/' | sed 's/<.*>//g' | sed 's/^$//' | sed 's/[fF][uU][cC][kK]/[32mF***[39m/g';)";
+    RESULT="$($CURL $URL |  awk '/<!-- Usage of azlyrics.com content by any third-party lyrics provider is prohibited by our licensing agreement. Sorry about that. -->/, /<!-- MxM banner -->/' | sed 's/<.*>//g' | sed 's/^$//' | sed 's/[fF][uU][cC][kK]/[32mF***[39m/g';)";
 ### NEW
     if [[ -z "$RESULT" ]];then
         echo "That URL sucked. Lets try songlyrics.com...";
