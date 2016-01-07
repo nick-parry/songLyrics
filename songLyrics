@@ -149,8 +149,10 @@ function do_it_azlyrics() {
     # Run the curl and store the lyrics into a var
     # This uniq is sketchy, but if a song's lyrics are very similar, maybe I
     # don't care if we squash them anyways.
+        # The old method
+        #| awk '/<!-- Usage of azlyrics.com content by any third-party lyrics provider is prohibited by our licensing agreement. Sorry about that. -->/, /<!-- MxM banner -->/' \
     RESULT="$($CURL $URL \
-        | awk '/<!-- Usage of azlyrics.com content by any third-party lyrics provider is prohibited by our licensing agreement. Sorry about that. -->/, /<!-- MxM banner -->/' \
+        | awk '/<!-- Usage of azlyrics.com content by any third-party lyrics provider is prohibited by our licensing agreement. Sorry about that. -->/, /<\/div>/' \
         | perl -pe 's/<.*?>//g' \
         | sed 's/^\s*//' \
         | sed 's/’//g' \
