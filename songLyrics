@@ -107,6 +107,7 @@ function do_it_songLyrics() {
         | sed 's/[sS][hH][iI][tT]/[32mS***[39m/g' \
         | sed "s/&#039;/'/g" \
         | sed 's/&rsquo;//g' \
+        | sed 's/&quot;//g' \
         | uniq
     )"
 
@@ -164,6 +165,7 @@ function do_it_azlyrics() {
         | sed 's/[sS][hH][iI][tT]/[32mS***[39m/g' \
         | sed "s/&#039;/'/g" \
         | sed 's/&rsquo;//g' \
+        | sed 's/&quot;//g' \
         | uniq 
     )";
 
