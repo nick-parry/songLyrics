@@ -75,19 +75,19 @@ function google {
 }
 
 ################################################################################
-# Get the lyrics of a song by googling it, and parsing result pages
+# Get the lyrics from plyrics
 ################################################################################
-function do_it_songLyrics() {
+function do_it_plyrics() {
     # If we passed in a url
     if [[ "$1" == "--url" ]];then
         URL="$2"
     else
-        ALL=$(google "$1 $2 lyrics site:songlyrics.com");
-        URL="$(echo $ALL | tr ' ' '\n' | grep "songlyrics.com" -m 1)";
+        ALL=$(google "$1 $2 lyrics site:plyrics.com");
+        URL="$(echo $ALL | tr ' ' '\n' | grep "plyrics.com" -m 1)";
     fi
 
     if [[ -z "$URL" ]];then
-        echo "There was no songlyrics.com results. Giving up now :(";
+        echo "There were no plyrics.com results. Giving up now :(";
         exit 0;
     fi
     # Print the artist and title we are going to look up
@@ -95,7 +95,7 @@ function do_it_songLyrics() {
     # Run the curl and store the lyrics into a var
     # This uniq is sketchy, but if a song's lyrics are very similar, maybe I
     # don't care if we squash them anyways.
-    RESULT="$($CURL $URL | awk '/<p id=\"songLyricsDiv\"/, /<\/p>/' \
+    RESULT="$($CURL $URL | awk '/start of lyric/, /end of lyric/' \
         | perl -pe 's/<.*?>//g' \
         | sed 's/^\s*//' \
         | sed 's/’//g' \
@@ -126,6 +126,59 @@ function do_it_songLyrics() {
 }
 
 ################################################################################
+# Get the lyrics of a song by googling it, and parsing result pages
+################################################################################
+function do_it_songLyrics() {
+    # If we passed in a url
+    if [[ "$1" == "--url" ]];then
+        URL="$2"
+    else
+        ALL=$(google "$1 $2 lyrics site:songlyrics.com");
+        URL="$(echo $ALL | tr ' ' '\n' | grep "songlyrics.com" -m 1)";
+    fi
+
+    if [[ -z "$URL" ]];then
+        echo "There were no songlyrics.com results. Trying plyrics now...";
+        do_it_plyrics "$1" "$2"
+        exit 0;
+    fi
+    # Print the artist and title we are going to look up
+    echo -e "($URL) $1 - $2: ";
+    # Run the curl and store the lyrics into a var
+    # This uniq is sketchy, but if a song's lyrics are very similar, maybe I
+    # don't care if we squash them anyways.
+    RESULT="$($CURL $URL | awk '/<p id=\"songLyricsDiv\"/, /<\/p>/' \
+        | perl -pe 's/<.*?>//g' \
+        | sed 's/^\s*//' \
+        | sed 's/’//g' \
+        | sed 's/‘//g' \
+        | sed 's/”/"/g' \
+        | sed 's/“/"/g' \
+        | sed 's/…/.../g' \
+        | sed 's/[fF][uU][cC][kK]/[32mF***[39m/g' \
+        | sed 's/[sS][hH][iI][tT]/[32mS***[39m/g' \
+        | sed "s/&#039;/'/g" \
+        | sed 's/&rsquo;//g' \
+        | sed 's/&quot;//g' \
+        | uniq
+    )"
+
+
+
+    # If we didn't get anything, lets give up. This is the last option.
+    if [[ -z "$RESULT" ]];then
+        echo "That URL sucked. Trying plyrics now..."
+        do_it_plyrics "$1" "$2"
+        exit 0;
+
+    # We found something
+    else
+        echo "$RESULT"
+    fi
+
+}
+
+################################################################################
 # The a-z lyrics method
 ################################################################################
 function do_it_azlyrics() {
@@ -142,7 +195,7 @@ function do_it_azlyrics() {
         echo "There was no azlyrics.com results. Lets try songlyrics.com...";
         #do_it_azlyrics "$1" "$2"
         do_it_songLyrics "$1" "$2"
-        exit
+        exit 0;
     fi
 
     # Print the artist and title we are going to look up
