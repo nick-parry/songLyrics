@@ -56,22 +56,11 @@ CURL="curl -s -A '$USER_AGENT'";
 ################################################################################
 # This is used to get the url for the lyrics
 ################################################################################
-function google { 
-    if [[ -n "$1" && -n "$2" ]];then
-        Q="$2";
-        GOOG_URL='https://www.google.com/search?tbs=li:1&q=';
-        AGENT="Mozilla/4.0";
-        stream=$(curl -A "$AGENT" -skLm 10 "${GOOG_URL}${Q//\ /+}" | grep -oP '\/url\?q=.+?&amp' | sed 's|/url?q=||;s|&amp||');
-        echo -e "${stream//\%/\x}";
-
-    elif [[ -n "$1" ]];then
-            Q="$1";
-            GOOG_URL='https://www.google.com/search?tbs=li:1&q=';
-            AGENT="Mozilla/4.0";
-            stream=$(curl -A "$AGENT" -skLm 10 "${GOOG_URL}${Q//\ /+}" | grep -oP '\/url\?q=.+?&amp' | sed 's|/url?q=||;s|&amp||');
-            echo -e "${stream//\%/\x}";
-    fi
-
+function google { Q="$@"
+    GOOG_URL='https://www.google.com/search?tbs=li:1&q='
+    AGENT="Mozilla/4.0"
+    stream=$(curl -A "$AGENT" -skLm 10 "${GOOG_URL}${Q//\ /+}")
+    echo "$stream" | grep -o "href=\"/url[^\&]*&amp;" | sed 's/href=".url.q=\([^\&]*\).*/\1/'
 }
 
 ################################################################################
@@ -246,7 +235,7 @@ function lookupSpotifyInfo() {
     TITLE="$(dbus-send --print-reply --session --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' string:'Metadata' | grep -A 3 title | grep string | grep -v xesam | sed 's/^\s*//' | sed 's/^variant\s*//' | cut -d ' ' -f 2- | tr '(' ' ' | tr ')' ' ' | tr '"' ' ' )";
 
     if [[ -z "$ARTIST" || -z "$TITLE" ]];then
-        echo "There was a problme getting the currently playing info from spotify";
+        echo "There was a problem getting the currently playing info from spotify";
         exit 1;
     fi
 
@@ -308,6 +297,10 @@ if [[ "$(echo $1 | grep 'http://.*songlyrics.com' -i)" ]];then
 ########################################
 elif [[ "$(echo $1 | grep 'http://.*azlyrics.com' -i)" ]];then
     do_it_azlyrics --url "$1"
+    exit; 
+
+elif [[ "$(echo $1 | grep 'http://.*plyrics.com' -i)" ]];then
+    do_it_plyrics --url "$1"
     exit; 
 
 ########################################
