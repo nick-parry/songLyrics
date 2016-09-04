@@ -1,9 +1,9 @@
 #!/bin/bash
 ################################################################################
 # Copyright (c) 2015 Nick Parry
-# 
+#
 # MIT License
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -11,10 +11,10 @@
 # distribute, sublicense, and/or sell copies of the Software, and to
 # permit persons to whom the Software is furnished to do so, subject to
 # the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -30,19 +30,19 @@
 #
 # Examples:
 #   Use dbus interface to see what song is playing right now on spotify:
-#       songLyrics spotify 
+#       songLyrics spotify
 #
 #   Use dbus interface to see what song is playing right now in Rythmbox:
-#       songLyrics spotify 
-
+#       songLyrics spotify
+#
 #   Look up a song by a provided artist and title of a song:
 #       songLyrics "artist" "title"
 #
-#   Loop up a songlyrics.com ur:
+#   Look up a songlyrics.com url:
 #       songLyrics <songlyrics.com url> 
 #
-#   Loop up a azlyrics.com ur:
-#       songLyrics <azlyrics.com url> 
+#   Look up a azlyrics.com ur:
+#       songLyrics <azlyrics.com url>
 #
 # TODO: Provide this:
 #   Look up lyrics on a song by artist and title, but show the top 10 google
@@ -208,7 +208,7 @@ function do_it_azlyrics() {
         | sed "s/&#039;/'/g" \
         | sed 's/&rsquo;//g' \
         | sed 's/&quot;//g' \
-        | uniq 
+        | uniq
     )";
 
 
