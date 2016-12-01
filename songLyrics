@@ -29,7 +29,7 @@
 # available.
 #
 # Examples:
-#   Use dbus interface to see what song is playing right now on spotify:
+#   Use dbus/osascript to see what song is playing right now on spotify:
 #       songLyrics spotify
 #
 #   Use dbus interface to see what song is playing right now in Rythmbox:
@@ -230,9 +230,20 @@ function do_it_azlyrics() {
 # Sets the global ARTIST and TITLE varibles
 ################################################################################
 function lookupSpotifyInfo() {
-    ARTIST="$(dbus-send --print-reply --session --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' string:'Metadata' | grep -A 3 artist | grep string | grep -v xesam | sed 's/^\s*//' | cut -d ' ' -f 2- | tr '(' ' ' | tr ')' ' ' | tr '"' ' ' )";
+    # Checks $OSTYPE to determine the proper command for artist/title query
+    if [[ "$OSTYPE" == "linux-gnu" ]];then
+      ARTIST="$(dbus-send --print-reply --session --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' string:'Metadata' | grep -A 3 artist | grep string | grep -v xesam | sed 's/^\s*//' | cut -d ' ' -f 2- | tr '(' ' ' | tr ')' ' ' | tr '"' ' ' )";
 
-    TITLE="$(dbus-send --print-reply --session --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' string:'Metadata' | grep -A 3 title | grep string | grep -v xesam | sed 's/^\s*//' | sed 's/^variant\s*//' | cut -d ' ' -f 2- | tr '(' ' ' | tr ')' ' ' | tr '"' ' ' )";
+      TITLE="$(dbus-send --print-reply --session --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' string:'Metadata' | grep -A 3 title | grep string | grep -v xesam | sed 's/^\s*//' | sed 's/^variant\s*//' | cut -d ' ' -f 2- | tr '(' ' ' | tr ')' ' ' | tr '"' ' ' )";
+
+    elif [[ "$OSTYPE" == "darwin"* ]];then
+      ARTIST="$(osascript -e 'tell application "Spotify" to artist of current track as string')";
+
+      TITLE="$(osascript -e 'tell application "Spotify" to name of current track as string')";
+
+    else
+      echo "Your OS doesn't appear to be supported"
+    fi
 
     if [[ -z "$ARTIST" || -z "$TITLE" ]];then
         echo "There was a problem getting the currently playing info from spotify";
@@ -304,7 +315,7 @@ elif [[ "$(echo $1 | grep 'http://.*plyrics.com' -i)" ]];then
     exit; 
 
 ########################################
-# look up the username from the Rhythmbox dbus api
+# look up the lyrics using the Rhythmbox dbus api
 ########################################
 elif [[ "$1" == 'rhythmbox' || "$1" == 'rbox' ]]; then
     lookupRhythmboxInfo
@@ -316,14 +327,14 @@ elif [[ "$1" == 'rhythmbox' || "$1" == 'rbox' ]]; then
     exit 0;
 
 ########################################
-# look up the username from the spotify dbus api
+# look up the lyrics from the currently playing spotify song
 ########################################
 elif [[ "$1" == 'spotify' ]]; then
     # Sets the global ARTIST and TITLE vars
     lookupSpotifyInfo
     echo "Looking up title by Spotify artist and title...";
     echo "Artist: $ARTIST";
-    echo "TITLE: $TITLE";
+    echo "Title: $TITLE";
 
     do_it_azlyrics "$ARTIST" "$TITLE";
     exit 0;
