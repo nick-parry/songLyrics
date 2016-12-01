@@ -230,18 +230,19 @@ function do_it_azlyrics() {
 # Sets the global ARTIST and TITLE varibles
 ################################################################################
 function lookupSpotifyInfo() {
-    if [[ "$OSTYPE" == "linux-gnu" ]]; then
+    # Checks $OSTYPE to determine the proper command for artist/title query
+    if [[ "$OSTYPE" == "linux-gnu" ]];then
       ARTIST="$(dbus-send --print-reply --session --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' string:'Metadata' | grep -A 3 artist | grep string | grep -v xesam | sed 's/^\s*//' | cut -d ' ' -f 2- | tr '(' ' ' | tr ')' ' ' | tr '"' ' ' )";
 
       TITLE="$(dbus-send --print-reply --session --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' string:'Metadata' | grep -A 3 title | grep string | grep -v xesam | sed 's/^\s*//' | sed 's/^variant\s*//' | cut -d ' ' -f 2- | tr '(' ' ' | tr ')' ' ' | tr '"' ' ' )";
 
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
+    elif [[ "$OSTYPE" == "darwin"* ]];then
       ARTIST="$(osascript -e 'tell application "Spotify" to artist of current track as string')";
 
       TITLE="$(osascript -e 'tell application "Spotify" to name of current track as string')";
 
     else
-      echo "Are you using windoze??"
+      echo "Your OS doesn't appear to be supported"
     fi
 
     if [[ -z "$ARTIST" || -z "$TITLE" ]];then
@@ -326,7 +327,7 @@ elif [[ "$1" == 'rhythmbox' || "$1" == 'rbox' ]]; then
     exit 0;
 
 ########################################
-# look up the lyrics from the currently played spotify song
+# look up the lyrics from the currently playing spotify song
 ########################################
 elif [[ "$1" == 'spotify' ]]; then
     # Sets the global ARTIST and TITLE vars
