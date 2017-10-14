@@ -41,7 +41,7 @@ To display the lyrics from a given songlyrics.com url
 
 `songLyrics <songlyrics.com url>`
 
-To display the lyrics from a given songlyrics.com url
+To display the lyrics from a given azlyrics.com url
 
 `songLyrics <azlyrics.com url>`
 
