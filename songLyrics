@@ -264,12 +264,10 @@ function lookupRhythmboxInfo() {
     # string "title"
     # variant             string "Like Knives"
 
-    ALL="$(dbus-send --print-reply --dest=org.gnome.Rhythmbox /org/gnome/Rhythmbox/Shell org.gnome.Rhythmbox.Shell.getSongProperties string:$(dbus-send --print-reply --dest=org.gnome.Rhythmbox /org/gnome/Rhythmbox/Player org.gnome.Rhythmbox.Player.getPlayingUri | grep string | sed 's/^\s*//g' | cut -d ' ' -f 2 | sed 's/"//g') | sed 's/^\s*//' | grep 'string "artist"\|string "title"' -A 1)";
-
     # Get the Artist out of the dbus call
-    ARTIST="$(echo  "$ALL" | grep artist -A 1  | grep variant | cut -d ' ' -f 15- | sed 's/"//g')";
+    ARTIST="$(rhythmbox-client --print-playing-format %ta)";
     # Get the Title out of the dbus call
-    TITLE="$(echo "$ALL" | grep title -A 1  | grep variant | cut -d ' ' -f 15- | sed 's/"//g')";
+    TITLE="$(rhythmbox-client --print-playing-format %tt)";
     
 }
 
