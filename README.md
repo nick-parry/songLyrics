@@ -20,7 +20,7 @@ about someone running this on some other distro/verison of bash. I am running ba
 ## Installation
 I have cloned the repo in a goofy GIT directory on my box, and a sym-link in my $PATH. Something like this(~/bin is in my path):
 ```
-nick.parry@nparry-laptop:~$ file bin/songLyrics 
+$ file bin/songLyrics
 bin/songLyrics: symbolic link to `../GIT/songLyrics/songLyrics' 
 ```
 
